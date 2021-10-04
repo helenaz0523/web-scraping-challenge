@@ -11,7 +11,7 @@ def init_browser():
 	executable_path = {"executable_path":"webdriver/chromedriver"}
 	return Browser("chrome", **executable_path, headless = False)
 
-def scrap_data_mongo():
+def scrap_data():
 
 	browser = init_browser()
 
