@@ -13,15 +13,15 @@ mongo = PyMongo(app)
 @app.route("/")
 def index():
     #Find one record of data from the mongo database
-    mars_info_dict = mongo.db.mars_info_dict.find_one()
+    mars_info= mongo.db.mars_info.find_one()
     return render_template("index.html", mars_info_dict=mars_info_dict)
 
 #Route that will trigger the scrape function
 @app.route("/scrape")
 def scrape():
-    mars_info_dict = scrape_mars.scrap_data()
-    
-    mongo.db.mars_info_dict.update({}, mars_info_dict, upsert=True)
+    mars_info = scrape_mars.scrap_data()
+
+    mongo.db.mars_info.update({}, mars_info, upsert=True)
 
     return redirect("/", code=302)
     
