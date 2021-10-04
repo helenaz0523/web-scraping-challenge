@@ -16,156 +16,89 @@ def scrap_data_mongo():
 	browser = init_browser()
 
 	mars_scrape_data_dict = {}
-	sleep_timer = 2
+
 
 	# NASA Mars News
-	
+
 	title_list=[]
 	txt_list=[]
-	link_list=[]
 
-	url = "https://mars.nasa.gov/news/"
+	url = "https://redplanetscience.com/"
 	browser.visit(url)
-	time.sleep(sleep_timer)
 	html = browser.html 
 	soup = bs(html,"html.parser")
-	results = soup.find_all('li', class_="slide")
+	results = soup.find_all('div', class_="list_text")
 
 	for result in results:
 		try:
 			title_list.append(result.find(class_="content_title").text)
-			txt_list.append(result.find(class_="rollover_description_inner").text)
-			link_list.append("https://mars.nasa.gov" + result.a['href'])
+			txt_list.append(result.find(class_="article_teaser_body").text)
 
-		except AttributeError as e: # Error handling
+
+		except AttributeError as e:
 			print(e)
 
 	mars_scrape_data_dict['news_title'] = title_list[0] 
 	mars_scrape_data_dict['news_paragraph'] = txt_list[0]
-	mars_scrape_data_dict['news_url'] = link_list[0]
 
 
 	# JPL Mars Space Images
 
-	url = "https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars" 
-	browser.visit(url) 
-	time.sleep(sleep_timer) 
-	browser.find_by_css('.fancybox').click() 
-	time.sleep(sleep_timer) 
-	browser.click_link_by_partial_text('more info')
-	#browser.links.find_by_partial_text('more info').click() 
-	time.sleep(sleep_timer) 
+	imageurl = "https://spaceimages-mars.com/"
+	browser.visit(imageurl) 
 	html = browser.html 
 	soup = bs(html,"html.parser")
-	results = soup.find_all(class_="download_tiff")
-	image_link = results[1].a['href'] 
-	featured_image_url = "https:" + image_link 
-
+	image = soup.find('div', class_='floating_text_area')
+	link = image.find("a")['href']
+    featured_image_url = imageurl+link
+    
 	# result to mongoDB dictionary
 	mars_scrape_data_dict['featured_image_url'] = featured_image_url
 
 
-	# Mars Weather
-	import re
-	url = "https://twitter.com/MarsWxReport" 
-	browser.visit(url)
-	time.sleep(sleep_timer) 
-	html = browser.html 
-	soup = bs(html,"html.parser")
-	mars_weather=soup.find(text=re.compile("InSight sol")) 
-	#print(mars_weather)
-
-	# result to mongoDB dictionary
-	mars_scrape_data_dict['weather'] = mars_weather
-
 
 	# Mars Facts
 
-	url = "https://space-facts.com/mars/" 
+	url = "https://galaxyfacts-mars.com/"
+    browser.visit(url)
 	tables = pd.read_html(url) 
-	mars_table_df = tables[0]
-	mars_table_df.columns = ["Description", "Info"] 
-	mars_table_df.set_index('Description', inplace=True) 
+	plant_table_df = tables[0]
+	plant_table_df.columns = ["Description", "Mars_Info","Earth_Info"] 
+	plant_table_df.set_index('Description', inplace=True) 
 
-	mars_html_table = mars_table_df.to_html() 
-	mars_html_table = mars_html_table.replace("\n", "")
+	plant_html_table = plant_table_df.to_html() 
+	plant_html_table = plant_html_table.replace("\n", "")
 
 	# result to mongoDB dictionary
-	mars_scrape_data_dict['facts'] = mars_html_table
+	mars_scrape_data_dict['facts'] = plant_html_table
 
 
 	# Mars Hemispheres
 	hemisphere_img_urls = []
 
-	## Cerberus
-	url = "https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars" 
+	url = "https://marshemispheres.com/"
 	browser.visit(url)
-	time.sleep(sleep_timer) 
-	browser.click_link_by_partial_text('Cerberus')
-	#browser.links.find_by_partial_text('Cerberus').click() 
-	time.sleep(sleep_timer) 
 	html = browser.html 
 	soup = bs(html,"html.parser")
 
-	results_link_01 = soup.find(class_="downloads").a['href']
-	results_title_01 = soup.find('h2', class_="title").text 
+	items = soup.find_all('div', class_='item')
+	hemisphere_img_urls = []
+    
+	for item in items:
+		hemisphere_img_urls.append(dictionary_entry_01)
+		title = item.find('h3').text
+		hemisphere_url = 'https://marshemispheres.com/' + item.find('a', class_='itemLink product-item')['href']
 
-	dictionary_entry_01 = {"title":results_title_01, "image_url": results_link_01} 
-	hemisphere_img_urls.append(dictionary_entry_01)
+		browser.visit(hemisphere_url)
+		html = browser.html
+		soup = bs(html, 'html.parser')
+		hemisphere_img_url = 'https://marshemispheres.com/' + soup.find('img', class_='wide-image')['src']
+		hemisphere_img_urls.append({'title': title, 'img_url': hemisphere_img_url})
+		
 
-	browser.back() 
-
-	## Schiaparelli
-	time.sleep(sleep_timer) 
-	browser.click_link_by_partial_text('Schiaparelli')
-	#browser.links.find_by_partial_text('Schiaparelli').click() 
-	time.sleep(sleep_timer) 
-	html = browser.html 
-	soup = bs(html,"html.parser")
-
-	results_link_02 = soup.find(class_="downloads").a['href'] 
-	results_title_02 = soup.find('h2', class_="title").text 
-
-	dictionary_entry_02 = {"title":results_title_02, "image_url": results_link_02} 
-	hemisphere_img_urls.append(dictionary_entry_02) 
-
-	browser.back() 
-
-	## Syrtis
-	time.sleep(sleep_timer) 
-	browser.click_link_by_partial_text('Syrtis')
-	#browser.links.find_by_partial_text('Syrtis').click() 
-	time.sleep(sleep_timer) 
-	html = browser.html 
-	soup = bs(html,"html.parser")
-
-	results_link_03 = soup.find(class_="downloads").a['href'] 
-	results_title_03 = soup.find('h2', class_="title").text 
-
-	dictionary_entry_03 = {"title":results_title_03, "image_url": results_link_03}
-	hemisphere_img_urls.append(dictionary_entry_03) 
-
-	browser.back() 
-
-	## Valles
-	time.sleep(sleep_timer) 
-	browser.click_link_by_partial_text('Valles')
-	#browser.links.find_by_partial_text('Valles').click() 
-	time.sleep(sleep_timer) 
-	html = browser.html 
-	soup = bs(html,"html.parser")
-
-	results_link_04 = soup.find(class_="downloads").a['href']
-	results_title_04 = soup.find('h2', class_="title").text 
-
-	dictionary_entry_04 = {"title":results_title_04, "image_url": results_link_04} 
-	hemisphere_img_urls.append(dictionary_entry_04) 
-
-	browser.quit() 
 
 	# result to mongoDB dictionary
 	mars_scrape_data_dict["hemisphere_img_url"] = hemisphere_img_urls
 
-	print("puhhhh all done scraping ... I'm tiered now")
 
 	return mars_scrape_data_dict 
